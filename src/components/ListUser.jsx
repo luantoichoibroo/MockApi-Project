@@ -1,175 +1,84 @@
-import { useState, useEffect } from "react";
 import axios from "axios";
-import { Button, Table, Modal, Form } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import Table from "react-bootstrap/Table";
+import Button from "react-bootstrap/Button";
 import FormAddUser from "./FormAddUser";
+import FormEditUser from "./FormEditUser";
 
-export const ListUser = () => {
+export default function ListUser() {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [columns, setColumns] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
-  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await axios.get(
-          "https://67d99e3d35c87309f52987fc.mockapi.io/api/v1/Users"
-        );
-        setUsers(res.data);
-        setColumns(Object.keys(res.data[0]));
-        setLoading(false);
-      } catch (error) {
-        console.log("Lỗi khi gọi API:", error);
-      }
-    };
-    fetchUser();
+    fetchUsers();
   }, []);
 
-  const addUser = (newUser) => {
-    setUsers([...users, newUser]);
-  };
-
-  const deleteUser = async (id) => {
+  const fetchUsers = async () => {
     try {
-      await axios.delete(
-        `https://67d99e3d35c87309f52987fc.mockapi.io/api/v1/Users/${id}`
+      const response = await axios.get(
+        "https://67d99e3d35c87309f52987fc.mockapi.io/api/v1/Users"
       );
-      setUsers(users.filter((user) => user.id !== id));
+      setUsers(response.data);
     } catch (error) {
-      console.error("Error deleting user:", error);
+      console.error("Lỗi khi lấy danh sách user:", error);
     }
   };
 
-  const handleEdit = (user) => {
-    setEditingUser(user);
-    setShowModal(true);
+  const handleDelete = async (id) => {
+    await axios.delete(
+      `https://67d99e3d35c87309f52987fc.mockapi.io/api/v1/Users/${id}`
+    );
+    setUsers(users.filter((user) => user.id !== id));
   };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setEditingUser((prevUser) => ({
-      ...prevUser,
-      [name]: value,
-    }));
-  };
-
-  const handleSave = async () => {
-    try {
-      await axios.put(
-        `https://67d99e3d35c87309f52987fc.mockapi.io/api/v1/Users/${editingUser.id}`,
-        editingUser
-      );
-
-      setUsers(
-        users.map((user) => (user.id === editingUser.id ? editingUser : user))
-      );
-      setShowModal(false);
-    } catch (error) {
-      console.error("Error saving user:", error);
-    }
-  };
-
-  if (loading) {
-    return <h1>Đang tải..........</h1>;
-  }
 
   return (
-    <>
-      <FormAddUser addUser={addUser} />
-
+    <div>
+      <h2>Danh sách Users</h2>
+      <FormAddUser addUser={(newUser) => setUsers([...users, newUser])} />
+      {editingUser && (
+        <FormEditUser
+          user={editingUser}
+          updateUser={(updatedUser) => {
+            setUsers(
+              users.map((user) =>
+                user.id === updatedUser.id ? updatedUser : user
+              )
+            );
+            setEditingUser(null);
+          }}
+        />
+      )}
       <Table striped bordered hover>
         <thead>
           <tr>
-            {columns.map((column, index) => (
-              <th key={index}>{column.toUpperCase()}</th>
-            ))}
+            <th>MSSV</th>
+            <th>Họ tên</th>
+            <th>Lớp</th>
+            <th>Hình ảnh</th>
+            <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user) => (
             <tr key={user.id}>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.age}</td>
-              <td>{user.sex}</td>
-              <td>{user.id}</td>
-              <td>
-                <Button variant="danger" onClick={() => deleteUser(user.id)}>
-                  Xóa
-                </Button>
+              <td>{user.mssv}</td>
+              <td>{user.hoten}</td>
+              <td>{user.lop}</td>
+              <td className="text-center">
+                <img src={user.hinhanh} alt={user.hoten} height="50" />
               </td>
               <td>
-                <Button variant="warning" onClick={() => handleEdit(user)}>
+                <Button variant="warning" onClick={() => setEditingUser(user)}>
                   Sửa
+                </Button>{" "}
+                <Button variant="danger" onClick={() => handleDelete(user.id)}>
+                  Xóa
                 </Button>
               </td>
             </tr>
           ))}
         </tbody>
       </Table>
-      {editingUser && (
-        <Modal show={showModal} onHide={() => setShowModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Sửa thông tin người dùng</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form>
-              <Form.Group className="mb-3" controlId="formName">
-                <Form.Label>Tên</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="name"
-                  value={editingUser.name}
-                  onChange={handleChange}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="formEmail">
-                <Form.Label>Email</Form.Label>
-                <Form.Control
-                  type="email"
-                  name="email"
-                  value={editingUser.email}
-                  onChange={handleChange}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3" controlId="formAge">
-                <Form.Label>Tuổi</Form.Label>
-                <Form.Control
-                  type="number"
-                  name="age"
-                  value={editingUser.age}
-                  onChange={handleChange}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Giới tính</Form.Label>
-                <div>
-                  <Form.Check
-                    type="radio"
-                    label="Nam"
-                    name="sex"
-                    value="Male"
-                    checked={editingUser.sex === "Male"}
-                    onChange={handleChange}
-                  />
-                  <Form.Check
-                    type="radio"
-                    label="Nữ"
-                    name="sex"
-                    value="Female"
-                    checked={editingUser.sex === "Female"}
-                    onChange={handleChange}
-                  />
-                </div>
-              </Form.Group>
-              <Button variant="primary" onClick={handleSave}>
-                Lưu
-              </Button>
-            </Form>
-          </Modal.Body>
-        </Modal>
-      )}
-    </>
+    </div>
   );
-};
+}

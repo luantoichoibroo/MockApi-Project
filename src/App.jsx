@@ -1,6 +1,6 @@
 import React from "react";
 import { Container } from "react-bootstrap";
-import { ListUser } from "./components/ListUser";
+import ListUser from "./components/ListUser";
 
 const App = () => {
   return (
